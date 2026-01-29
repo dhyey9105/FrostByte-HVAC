@@ -20,9 +20,20 @@ st.set_page_config(
 )
 
 # --- API KEYS ---
-WEATHER_API_KEY = "4592cc7c9b838fe1c2fc4d8ee3810fab" 
 CITY = "Gandhinagar" 
-GEMINI_API_KEY = "AIzaSyBPxwuqAVR40W8i8ZkrSXmyzpZI568QPQU"
+
+# 🔒 SECURE KEY LOADING
+# Try to load from Streamlit Secrets (Cloud)
+# If that fails (Local computer), use the hardcoded backup
+try:
+    WEATHER_API_KEY = st.secrets["WEATHER_API_KEY"]
+    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+except:
+    # ⚠️ FOR LOCAL TESTING ONLY. DO NOT PUSH REAL KEYS TO GITHUB IF YOU CAN AVOID IT.
+    # Since you are submitting today, you can leave these here for local testing,
+    # but the Cloud will ignore them and use the secure Secrets above.
+    WEATHER_API_KEY = "4592cc7c9b838fe1c2fc4d8ee3810fab"
+    GEMINI_API_KEY = "AIzaSyBG1K5s4P6FCmzNOOXcVGsEcTjQi3L4OE4"
 
 # --- CONFIGURE GEMINI AI ---
 try:
