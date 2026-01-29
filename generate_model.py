@@ -1,0 +1,21 @@
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+import pickle
+
+# Create dummy training data (Physics based approximation)
+# Data: [Outside Temp, Occupancy] -> [Cooling Load kW]
+X = np.array([
+    [20, 0], [25, 10], [30, 20], [35, 50], [40, 100], [45, 150]
+])
+y = np.array([
+    10, 15, 25, 45, 70, 95 
+])
+
+model = LinearRegression()
+model.fit(X, y)
+
+with open('frostbyte_model.pkl', 'wb') as f:
+    pickle.dump(model, f)
+
+print("✅ frostbyte_model.pkl generated successfully!")
