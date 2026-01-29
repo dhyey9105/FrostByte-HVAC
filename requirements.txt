@@ -4,5 +4,5 @@ numpy
 scikit-learn
 fpdf
 streamlit-lottie
-google-generativeai
 requests
+google-generativeai>=0.7.0
