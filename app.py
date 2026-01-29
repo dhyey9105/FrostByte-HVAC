@@ -37,7 +37,7 @@ except:
 # --- CONFIGURE GEMINI AI ---
 try:
     genai.configure(api_key=GEMINI_API_KEY)
-    model_gemini = genai.GenerativeModel('gemini-pro')
+    model_gemini = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
     model_gemini = None
 
@@ -778,4 +778,5 @@ st.markdown("""
     <p>© 2026 FrostByte Technologies | AI Innovation Challenge 2026</p>
     <p>GKS | CSRBOX | IBM SkillsBuild</p>
 </div>
+
 """, unsafe_allow_html=True)
