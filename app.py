@@ -37,7 +37,7 @@ except:
 # --- CONFIGURE GEMINI AI ---
 try:
     genai.configure(api_key=GEMINI_API_KEY)
-    model_gemini = genai.GenerativeModel('gemini-1.5-flash')
+    model_gemini = genai.GenerativeModel('gemini-pro')
 except Exception as e:
     model_gemini = None
 
