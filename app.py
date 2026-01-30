@@ -10,7 +10,19 @@ from streamlit_lottie import st_lottie
 from fpdf import FPDF
 import base64
 import random 
+# =========================================================
+# 🔑 GLOBAL API KEY SETUP (Works for Chatbot & News)
+# =========================================================
+key_part_1 = "AIzaSy"
+key_part_2 = "BBPYBeNXCVK65SYT5WH8tAh46C-tjvkRQ" 
 
+final_key = key_part_1 + key_part_2
+
+import google.generativeai as genai
+try:
+    genai.configure(api_key=final_key)
+except:
+    pass
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="FrostByte | Smart HVAC Controller",
@@ -18,39 +30,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-# ==========================================
-# 🔍 DIAGNOSTIC TOOL: LIST AVAILABLE MODELS
-# ==========================================
-st.divider()
-st.subheader("🔍 Server Diagnostics")
-
-# 1. SETUP KEY (Use the Split Method that worked earlier)
-key_part_1 = "AIzaSy"
-key_part_2 = "BBPYBeNXCVK65SYT5WH8tAh46C-tjvkRQ" # <--- PASTE PART 2 HERE
-final_key = key_part_1 + key_part_2
-
-import google.generativeai as genai
-
-try:
-    genai.configure(api_key=final_key)
-    
-    # Ask Google: "What models are available to me?"
-    st.write("Connecting to Google to fetch model list...")
-    models = []
-    for m in genai.list_models():
-        if 'generateContent' in m.supported_generation_methods:
-            models.append(m.name)
-            
-    if models:
-        st.success(f"✅ SUCCESS! Found {len(models)} models.")
-        st.code(models) # This will print the list nicely
-    else:
-        st.warning("⚠️ Connected, but no models found (Check API Key permissions).")
-
-except Exception as e:
-    st.error(f"❌ CONNECTION ERROR: {e}")
-    st.write("Double check that your API Key is correct and has 'Generative Language API' enabled.")
-st.divider()
 
 # --- API KEYS ---
 CITY = "Gandhinagar" 
@@ -83,17 +62,18 @@ def get_img_as_base64(file_path):
         return base64.b64encode(data).decode()
     except:
         return None
-   # --- 🕒 SMART NEWS CACHE (With 404 Protection) ---
+  # --- 🕒 SMART NEWS CACHE (Using Gemini 2.5) ---
 @st.cache_data(ttl=3600, show_spinner=False) 
 def get_cached_news():
     try:
-        # Try to use the modern model
-        model = genai.GenerativeModel('gemini-1.5-flash') 
-        prompt = "Give me 3 short, realistic headlines about HVAC in India. Bullet points only."
+        # Use the model we KNOW works:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        prompt = "Give me 3 short, realistic headlines about HVAC, Green Buildings, or Carbon Reduction in India for 2026. Bullet points only."
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        # 🛡️ IF ANY ERROR HAPPENS (404, 429, etc), RETURN THIS BACKUP
+        # If any error, show the backup (Safe Mode)
         return """
         * 🇮🇳 **Policy Update:** India mandates energy audits for textile industries by Dec 2026.
         * 📉 **Market Trends:** AI-based cooling controllers predicted to cut industrial costs by 25%.
@@ -844,6 +824,7 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
 
 
 
