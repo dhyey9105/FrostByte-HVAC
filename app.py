@@ -606,7 +606,7 @@ elif selected_tab == "🚀 Project Dashboard":
                 # Visual placeholder for "Computer Vision"
                 st.image("sensor.png", caption="Live Sensor Feed (Simulated)", width=300)
             else:
-                occupancy = st.slider("👥 Manual Occupancy (ppl)", 0, 200, 50)
+                occupancy = st.slider("👥 Manual Occupancy (ppl)", 0, 500, 50)
 
             st.write("---")
             data_mode = st.radio("Weather Source", ["Live IoT Sensors", "Manual Simulation"])
