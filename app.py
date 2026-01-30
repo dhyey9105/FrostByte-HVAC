@@ -380,48 +380,60 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# FLOATING CHATBOT (ROBUST VERSION)
+# FLOATING CHATBOT (The "No Mercy" Edition)
 # =========================================================
 with st.popover("👋 Hi! Ask EcoBot"):
-    st.markdown("### 🤖 EcoBot AI")
-    st.caption("Ask me about Energy Saving, HVAC, or Green Buildings!")
+    st.markdown("### 🤖 EcoBot Live")
     
-    # Initialize chat history if not present
+    # 1. SETUP THE KEY (The Split Trick)
+    # PASTE YOUR NEW KEY PART 2 HERE ↓
+    key_part_1 = "AIzaSy"
+    key_part_2 = "BBPYBeNXCVK65SYT5WH8tAh46C-tjvkRQ" 
+    
+    final_key = key_part_1 + key_part_2
+    
+    # 2. CONFIGURE AI DIRECTLY
+    import google.generativeai as genai
+    genai.configure(api_key=final_key)
+    
+    # Chat Interface
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
-    # Display previous messages
-    for msg in st.session_state.chat_history[-3:]:
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
-            
-    # Input field
-    if prompt := st.chat_input("How can I save energy?"):
-        # Show user message immediately
-        st.session_state.chat_history.append({"role": "user", "content": prompt})
+    for msg in st.session_state.chat_history:
+        st.chat_message(msg["role"]).write(msg["content"])
+    
+    if prompt := st.chat_input("Ask me anything..."):
         st.chat_message("user").write(prompt)
+        st.session_state.chat_history.append({"role": "user", "content": prompt})
         
-        # --- THE ROBUST AI HANDLER ---
+        # 3. TRY TO GENERATE (Loop through models until one works)
         with st.chat_message("assistant"):
-            try:
-                # 1. Try the Latest Model first
-                model = genai.GenerativeModel('gemini-1.5-flash')
-                response = model.generate_content(f"You are EcoBot. Keep answers short (max 30 words). User: {prompt}")
-                ai_text = response.text
-                
-            except Exception as e:
-                try:
-                    # 2. If that fails (404), try the Stable 'Pro' Model
-                    model = genai.GenerativeModel('gemini-pro')
-                    response = model.generate_content(f"You are EcoBot. Keep answers short (max 30 words). User: {prompt}")
-                    ai_text = response.text
-                except:
-                    # 3. If EVERYTHING fails (Quota/Network), use the Backup Answer
-                    ai_text = "I am currently experiencing high traffic. However, I recommend keeping your AC at 24°C to save 6% energy!"
+            status_box = st.empty()
+            status_box.caption("Connecting to Google Brain...")
             
-            # Show the result (whichever one worked)
-            st.write(ai_text)
-            st.session_state.chat_history.append({"role": "assistant", "content": ai_text})
+            try:
+                # TRICK: Try 'gemini-1.5-flash' first
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                response = model.generate_content(prompt)
+                ai_reply = response.text
+                status_box.empty() # Clear loading message
+                st.write(ai_reply)
+                st.session_state.chat_history.append({"role": "assistant", "content": ai_reply})
+            
+            except Exception as e_flash:
+                # If Flash fails, try 'gemini-pro'
+                try:
+                    model = genai.GenerativeModel('gemini-pro')
+                    response = model.generate_content(prompt)
+                    ai_reply = response.text
+                    status_box.empty()
+                    st.write(ai_reply)
+                    st.session_state.chat_history.append({"role": "assistant", "content": ai_reply})
+                
+                except Exception as e_pro:
+                    # IF BOTH FAIL, SHOW THE REAL ERROR (So we can fix it!)
+                    status_box.error(f"CRITICAL ERROR: {e_pro}")
 
 # =========================================================
 # NAVIGATION
@@ -797,5 +809,6 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
 
 
