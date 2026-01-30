@@ -413,20 +413,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# FLOATING CHATBOT (THE MASTER KEY EDITION)
+# 🤖 FLOATING CHATBOT (Using Gemini 2.5 Flash)
 # =========================================================
 with st.popover("👋 Hi! Ask EcoBot"):
     st.markdown("### 🤖 EcoBot Live")
+    st.caption("Powered by Gemini 2.5 Flash")
 
     # --- 1. SETUP KEY (Split Method) ---
     key_part_1 = "AIzaSy"
-    # PASTE THE REST OF YOUR KEY HERE ↓ (Remove 'AIzaSy' if copying full key)
+    # PASTE YOUR KEY PART 2 HERE ↓ (Remove 'AIzaSy' if copying full key)
     key_part_2 = "BBPYBeNXCVK65SYT5WH8tAh46C-tjvkRQ" 
     
     final_key = key_part_1 + key_part_2
     
     import google.generativeai as genai
-    genai.configure(api_key=final_key)
+    try:
+        genai.configure(api_key=final_key)
+    except:
+        pass
 
     # --- 2. CHAT HISTORY ---
     if "chat_history" not in st.session_state:
@@ -435,46 +439,37 @@ with st.popover("👋 Hi! Ask EcoBot"):
     for msg in st.session_state.chat_history:
         st.chat_message(msg["role"]).write(msg["content"])
     
-    # --- 3. THE "MASTER KEY" LOGIC ---
-    if prompt := st.chat_input("Ask me anything..."):
+    # --- 3. CHAT LOGIC ---
+    if prompt := st.chat_input("Ask about energy savings..."):
         st.chat_message("user").write(prompt)
         st.session_state.chat_history.append({"role": "user", "content": prompt})
         
         with st.chat_message("assistant"):
             status_box = st.empty()
-            status_box.caption("🤖 AI Thinking...")
+            status_box.markdown("⚡ *Connecting to Gemini 2.5...*")
             
-            # LIST OF ALL POSSIBLE NAMES TO TRY
-            # The code will try these one by one until one works.
-            model_names = [
-                "gemini-1.5-flash",
-                "gemini-1.5-pro",
-                "gemini-1.0-pro",
-                "gemini-pro",
-                "models/gemini-1.5-flash",
-                "models/gemini-pro"
-            ]
+            try:
+                # USE THE MODEL NAME WE FOUND IN YOUR LIST!
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                response = model.generate_content(prompt)
+                ai_reply = response.text
+                
+                # Success!
+                status_box.empty()
+                st.write(ai_reply)
+                st.session_state.chat_history.append({"role": "assistant", "content": ai_reply})
             
-            success = False
-            for model_name in model_names:
+            except Exception as e:
+                # If 2.5 is busy, try the 'Lite' version from your list
                 try:
-                    # Try current model name
-                    model = genai.GenerativeModel(model_name)
+                    model = genai.GenerativeModel('gemini-2.0-flash-lite')
                     response = model.generate_content(prompt)
                     ai_reply = response.text
-                    
-                    # IF WE GET HERE, IT WORKED! 🎉
                     status_box.empty()
                     st.write(ai_reply)
                     st.session_state.chat_history.append({"role": "assistant", "content": ai_reply})
-                    success = True
-                    break # Stop the loop, we found the key!
                 except:
-                    continue # Try the next name in the list
-            
-            if not success:
-                # If ALL failed, show the technical error safely
-                status_box.error("⚠️ AI Connection Failed. Please check Internet or API Quota.")
+                     status_box.error("⚠️ System Busy. Try again in 1 minute.")
 # =========================================================
 # NAVIGATION
 # =========================================================
@@ -849,6 +844,7 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
 
 
 
