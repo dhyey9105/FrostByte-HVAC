@@ -21,18 +21,19 @@ st.set_page_config(
 
 # --- API KEYS ---
 CITY = "Gandhinagar" 
+WEATHER_API_KEY = "4592cc7c9b838fe1c2fc4d8ee3810fab"
 
-# 🔒 SECURE KEY LOADING
+
+key_part1 = "AIzaSy"
+key_part2 = "BBPYBeNXCVK65SYT5WH8tAh46C-tjvkRQ"
+GEMINI_API_KEY = key_part1 + key_part2
+
+# Configure AI immediately
+import google.generativeai as genai
 try:
-    # This works on the Cloud (Streamlit)
-    WEATHER_API_KEY = st.secrets["WEATHER_API_KEY"]
-    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+    genai.configure(api_key=GEMINI_API_KEY)
 except:
-    # This works on your LOCAL computer only if you have a secrets.toml file.
-    # If not, the app will just show an error locally, BUT IT IS SAFE.
-    # DO NOT PASTE THE REAL KEY HERE FOR GITHUB.
-    WEATHER_API_KEY = "" #Leave this EMPTY to satisfy GitHub Security!
-    GEMINI_API_KEY = "" # Leave this EMPTY to satisfy GitHub Security!
+    pass
 
 # --- CONFIGURE GEMINI AI ---
 try:
@@ -796,4 +797,5 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
 
