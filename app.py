@@ -49,16 +49,17 @@ def get_img_as_base64(file_path):
         return base64.b64encode(data).decode()
     except:
         return None
-    # --- 🕒 SMART NEWS CACHE (Updates only once every 60 mins) ---
+   # --- 🕒 SMART NEWS CACHE (With 404 Protection) ---
 @st.cache_data(ttl=3600, show_spinner=False) 
 def get_cached_news():
     try:
-        # This prompt runs only once per hour
-        prompt = "Give me 3 short, realistic headlines about HVAC, Green Buildings, or Carbon Reduction in India for 2026. Bullet points only."
-        response = model_gemini.generate_content(prompt)
+        # Try to use the modern model
+        model = genai.GenerativeModel('gemini-1.5-flash') 
+        prompt = "Give me 3 short, realistic headlines about HVAC in India. Bullet points only."
+        response = model.generate_content(prompt)
         return response.text
-    except:
-        # If API fails (Quota limit), show this backup instantly
+    except Exception as e:
+        # 🛡️ IF ANY ERROR HAPPENS (404, 429, etc), RETURN THIS BACKUP
         return """
         * 🇮🇳 **Policy Update:** India mandates energy audits for textile industries by Dec 2026.
         * 📉 **Market Trends:** AI-based cooling controllers predicted to cut industrial costs by 25%.
@@ -771,4 +772,5 @@ st.markdown("""
     <p>© 2026 FrostByte Technologies | AI Innovation Challenge 2026</p>
     <p>GKS | CSRBOX | IBM SkillsBuild</p>
 </div>
+
 """, unsafe_allow_html=True)
