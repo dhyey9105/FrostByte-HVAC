@@ -292,7 +292,7 @@ def create_user(username, password):
         conn.close()
 
 def verify_login(username, password):
-    valid_admins = {"admin": "admin123", "dhyey": "1234", "harsh": "1234", "dev": "owner"}
+    valid_admins = {"admin": "Gandhinagar#Win", "dhyey": "Dhyey092026", "harsh": "1234", "owner": "workisworship"}
     if username in valid_admins and valid_admins[username] == password:
         return True
     conn = sqlite3.connect('hvac_data.db')
@@ -824,6 +824,7 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
 
 
 
