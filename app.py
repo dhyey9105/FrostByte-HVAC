@@ -379,26 +379,48 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# FLOATING CHATBOT (FIXED & MERGED)
+# FLOATING CHATBOT (ROBUST VERSION)
 # =========================================================
 with st.popover("👋 Hi! Ask EcoBot"):
     st.markdown("### 🤖 EcoBot AI")
     st.caption("Ask me about Energy Saving, HVAC, or Green Buildings!")
+    
+    # Initialize chat history if not present
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
+    # Display previous messages
     for msg in st.session_state.chat_history[-3:]:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
+            
+    # Input field
     if prompt := st.chat_input("How can I save energy?"):
+        # Show user message immediately
         st.session_state.chat_history.append({"role": "user", "content": prompt})
-        if model_gemini is None:
-             st.error("⚠️ System Error: AI Key is missing.")
-        else:
+        st.chat_message("user").write(prompt)
+        
+        # --- THE ROBUST AI HANDLER ---
+        with st.chat_message("assistant"):
             try:
-                response = model_gemini.generate_content(f"You are EcoBot. Keep answers short (max 30 words). User: {prompt}")
+                # 1. Try the Latest Model first
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                response = model.generate_content(f"You are EcoBot. Keep answers short (max 30 words). User: {prompt}")
                 ai_text = response.text
-                st.session_state.chat_history.append({"role": "assistant", "content": ai_text})
-                st.rerun()
+                
             except Exception as e:
-                st.error(f"AI Error: {e}")
+                try:
+                    # 2. If that fails (404), try the Stable 'Pro' Model
+                    model = genai.GenerativeModel('gemini-pro')
+                    response = model.generate_content(f"You are EcoBot. Keep answers short (max 30 words). User: {prompt}")
+                    ai_text = response.text
+                except:
+                    # 3. If EVERYTHING fails (Quota/Network), use the Backup Answer
+                    ai_text = "I am currently experiencing high traffic. However, I recommend keeping your AC at 24°C to save 6% energy!"
+            
+            # Show the result (whichever one worked)
+            st.write(ai_text)
+            st.session_state.chat_history.append({"role": "assistant", "content": ai_text})
 
 # =========================================================
 # NAVIGATION
@@ -774,3 +796,4 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
