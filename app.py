@@ -37,7 +37,7 @@ except:
 # --- CONFIGURE GEMINI AI ---
 try:
     genai.configure(api_key=GEMINI_API_KEY)
-    model_gemini = genai.GenerativeModel('gemini-flash-latest')
+    model_gemini = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
     model_gemini = None
 
@@ -49,6 +49,21 @@ def get_img_as_base64(file_path):
         return base64.b64encode(data).decode()
     except:
         return None
+    # --- 🕒 SMART NEWS CACHE (Updates only once every 60 mins) ---
+@st.cache_data(ttl=3600, show_spinner=False) 
+def get_cached_news():
+    try:
+        # This prompt runs only once per hour
+        prompt = "Give me 3 short, realistic headlines about HVAC, Green Buildings, or Carbon Reduction in India for 2026. Bullet points only."
+        response = model_gemini.generate_content(prompt)
+        return response.text
+    except:
+        # If API fails (Quota limit), show this backup instantly
+        return """
+        * 🇮🇳 **Policy Update:** India mandates energy audits for textile industries by Dec 2026.
+        * 📉 **Market Trends:** AI-based cooling controllers predicted to cut industrial costs by 25%.
+        * 🚀 **Tech Shift:** IoT-enabled magnetic bearing chillers see 40% adoption growth.
+        """
 
 # --- CUSTOM CSS ---
 st.markdown("""
@@ -466,38 +481,16 @@ if selected_tab == "🏠 Home & Vision":
         </div>
         """, unsafe_allow_html=True)
     
-    # --- FAIL-SAFE NEWS SECTION ---
+ # --- SMART NEWS SECTION (Updated) ---
     with col_news:
         st.markdown("### ⚡ HVAC News")
         
-        if 'news_cache' not in st.session_state:
-            st.session_state['news_cache'] = None
-            
         if model_gemini:
-            try:
-                # 1. TRY FRESH FETCH
-                if st.session_state['news_cache'] is None:
-                    news_prompt = "Give me 3 short, realistic headlines about HVAC, Green Buildings, or Carbon Reduction in India for 2026. Bullet points only."
-                    response = model_gemini.generate_content(news_prompt)
-                    st.session_state['news_cache'] = response.text
-                
-                # SHOW IF SUCCESSFUL
-                st.info(st.session_state['news_cache'])
-                
-            except Exception as e:
-                # 2. IF API FAILS (QUOTA), CHECK CACHE
-                if st.session_state['news_cache'] is not None:
-                    st.info(st.session_state['news_cache'])
-                    st.caption("⚠️ Offline Mode: Showing cached updates")
-                else:
-                    # 3. IF ALL FAILS, SHOW BACKUP (THE SAVIOR!)
-                    st.info("""
-                    * 🇮🇳 **Policy Update:** India mandates energy audits for textile industries by Dec 2026.
-                    * 📉 **Market Trends:** AI-based cooling controllers predicted to cut industrial costs by 25%.
-                    * 🚀 **Tech Shift:** IoT-enabled magnetic bearing chillers see 40% adoption growth.
-                    """)
+            # This calls the smart function we added at the top
+            latest_news = get_cached_news()
+            st.info(latest_news)
         else:
-             st.info("* **COP30 Update:** India focuses on Industrial Cooling.")
+            st.info("* **COP30 Update:** India focuses on Industrial Cooling.")
 
 # =========================================================
 # PAGE: DASHBOARD (LOGIN & SIGN UP)
@@ -778,6 +771,4 @@ st.markdown("""
     <p>© 2026 FrostByte Technologies | AI Innovation Challenge 2026</p>
     <p>GKS | CSRBOX | IBM SkillsBuild</p>
 </div>
-
 """, unsafe_allow_html=True)
-
