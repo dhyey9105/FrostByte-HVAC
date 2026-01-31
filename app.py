@@ -9,43 +9,12 @@ from datetime import datetime
 from streamlit_lottie import st_lottie
 from fpdf import FPDF
 import base64
-import random 
+import random
+import os
+
 # =========================================================
-# 🔑 GLOBAL API KEY SETUP (Works for Chatbot & News)
+# 1. PAGE CONFIGURATION
 # =========================================================
-key_part_1 = "AIzaSy"
-key_part_2 = "BBPYBeNXCVK65SYT5WH8tAh46C-tjvkRQ" 
-
-final_key = key_part_1 + key_part_2
-
-import google.generativeai as genai
-try:
-    genai.configure(api_key=final_key)
-except:
-    pass
-
-# --- 🌍 GLOBAL API CALL (Put this near the top) ---
-import requests
-
-# ... (your existing imports and setup) ...
-
-city_name = "Gandhinagar"
-api_key = "4592cc7c9b838fe1c2fc4d8ee3810fab" # Keep your key here
-url = f"https://api.openweathermap.org/data/2.5/weather?q={city_name}&appid={api_key}&units=metric"
-
-try:
-    response = requests.get(url)
-    data = response.json()
-    # Capture variables globally
-    current_temp = data["main"]["temp"]
-    current_hum = data["main"]["humidity"]
-    weather_desc = data["weather"][0]["description"].title()
-except:
-    current_temp = 25 # Fallback
-    current_hum = 50  # Fallback
-    weather_desc = "Sunny"
-
-# --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="FrostByte | Smart HVAC Controller",
     page_icon="❄️",
@@ -53,30 +22,44 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- API KEYS ---
-CITY = "Gandhinagar" 
+# =========================================================
+# 2. GLOBAL API KEYS & SETUP
+# =========================================================
+CITY = "Gandhinagar"
 WEATHER_API_KEY = "4592cc7c9b838fe1c2fc4d8ee3810fab"
 
-
-key_part1 = "AIzaSy"
-key_part2 = "BBPYBeNXCVK65SYT5WH8tAh46C-tjvkRQ"
-GEMINI_API_KEY = key_part1 + key_part2
+# Construct Gemini Key
+key_part_1 = "AIzaSy"
+key_part_2 = "BBPYBeNXCVK65SYT5WH8tAh46C-tjvkRQ"
+GEMINI_API_KEY = key_part_1 + key_part_2
 
 # Configure AI immediately
-import google.generativeai as genai
-try:
-    genai.configure(api_key=GEMINI_API_KEY)
-except:
-    pass
-
-# --- CONFIGURE GEMINI AI ---
 try:
     genai.configure(api_key=GEMINI_API_KEY)
     model_gemini = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
     model_gemini = None
 
-# --- HELPER FUNCTION FOR IMAGES ---
+# --- GLOBAL WEATHER CALL (Runs Once) ---
+current_temp = 25  # Fallback
+current_hum = 50   # Fallback
+weather_desc = "Sunny"
+
+try:
+    url = f"https://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={WEATHER_API_KEY}&units=metric"
+    response = requests.get(url, timeout=3)
+    if response.status_code == 200:
+        data = response.json()
+        current_temp = data["main"]["temp"]
+        current_hum = data["main"]["humidity"]
+        weather_desc = data["weather"][0]["description"].title()
+except:
+    pass
+
+# =========================================================
+# 3. HELPER FUNCTIONS
+# =========================================================
+
 def get_img_as_base64(file_path):
     try:
         with open(file_path, "rb") as f:
@@ -84,185 +67,52 @@ def get_img_as_base64(file_path):
         return base64.b64encode(data).decode()
     except:
         return None
-  # --- 🕒 SMART NEWS CACHE (Using Gemini 2.5) ---
-@st.cache_data(ttl=3600, show_spinner=False) 
+
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_cached_news():
     try:
-        # Use the model we KNOW works:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        
+        model = genai.GenerativeModel('gemini-2.0-flash') # Or 1.5 flash if 2.0 busy
         prompt = "Give me 3 short, realistic headlines about HVAC, Green Buildings, or Carbon Reduction in India for 2026. Bullet points only."
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        # If any error, show the backup (Safe Mode)
         return """
         * 🇮🇳 **Policy Update:** India mandates energy audits for textile industries by Dec 2026.
         * 📉 **Market Trends:** AI-based cooling controllers predicted to cut industrial costs by 25%.
         * 🚀 **Tech Shift:** IoT-enabled magnetic bearing chillers see 40% adoption growth.
         """
 
-# --- CUSTOM CSS ---
-st.markdown("""
-    <style>
-    .stApp { background-color: #FFFFFF; }
-    
-    /* --- CHATBOT FIX (AGGRESSIVE) --- */
-    div[data-testid="stPopover"] {
-        position: fixed !important;
-        bottom: 30px !important;
-        right: 30px !important;
-        width: auto !important;
-        z-index: 99999 !important;
-    }
-
-    div[data-testid="stPopover"] > button {
-        border-radius: 30px !important;
-        background: linear-gradient(135deg, #2980B9 0%, #6DD5FA 100%) !important;
-        color: white !important;
-        border: none !important;
-        box-shadow: 0px 4px 15px rgba(0,0,0,0.3) !important;
-        padding: 10px 25px !important;
-        font-weight: bold !important;
-        font-size: 16px !important;
-        height: auto !important;
-        width: auto !important;
-        animation: float 3s ease-in-out infinite;
-    }
-    
-    div[data-testid="stPopover"] > button:hover {
-        transform: scale(1.05);
-        color: #fff !important;
-    }
-    
-    @keyframes float {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-5px); }
-        100% { transform: translateY(0px); }
-    }
-    /* --- END CHATBOT FIX --- */
-
-    [data-testid="stHorizontalBlock"] { align-items: center; }
-    
-    /* --- IMAGE ALIGNMENT STYLES --- */
-    .team-container {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 15px;
-    }
-    .team-img-fixed {
-        width: 150px;
-        height: 150px;
-        object-fit: cover; 
-        border-radius: 50%;
-        border: 4px solid #154360;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-
-    .logo-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100px;
-    }
-    .logo-img-fixed {
-        max-height: 80px; 
-        max-width: 100%;
-        width: auto;
-        object-fit: contain;
-    }
-
-    .header-box {
-        background: linear-gradient(90deg, #004e92 0%, #000428 100%);
-        padding: 30px;
-        color: white;
-        text-align: center;
-        border-radius: 0 0 15px 15px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        margin-bottom: 20px;
-    }
-    
-    .marquee-container {
-        background-color: #FEF9E7;
-        color: #B03A2E;
-        padding: 10px;
-        font-weight: bold;
-        border: 1px solid #F1C40F;
-        border-radius: 5px;
-        margin-bottom: 25px;
-    }
-    
-    .message-box {
-        background: linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%);
-        border-left: 6px solid #00BCD4;
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        color: #006064;
-    }
-    
-    .login-box {
-        background-color: #F8F9F9;
-        padding: 30px;
-        border-radius: 10px;
-        border: 1px solid #D5D8DC;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
-    }
-    
-    /* TELEMETRY BOX (PROFESSIONAL GREY/BLUE) */
-    .telemetry-box {
-        background-color: #F4F6F6; /* Light Industrial Grey */
-        color: #154360; /* Deep Engineering Blue */
-        padding: 15px;
-        border-radius: 8px;
-        font-family: 'Courier New', monospace; 
-        margin-top: 20px;
-        border: 1px solid #BDC3C7;
-        box-shadow: inset 0 0 10px rgba(0,0,0,0.05); 
-    }
-
-    .roi-box {
-        background-color: #FFF8E1;
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #F1C40F;
-        margin-top: 15px;
-    }
-
-    .footer {
-        background-color: #17202A;
-        color: #B2BABB;
-        padding: 40px;
-        text-align: center;
-        margin-top: 50px;
-        font-size: 14px;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- BACKEND FUNCTIONS ---
-
-@st.cache_data(ttl=600) 
+@st.cache_data(ttl=600)
 def load_lottieurl(url: str):
     r = requests.get(url)
     if r.status_code != 200:
         return None
     return r.json()
 
+@st.cache_data(ttl=180)
+def get_live_weather():
+    try:
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={WEATHER_API_KEY}&units=metric"
+        r = requests.get(url, timeout=2)
+        if r.status_code == 200:
+            return r.json()['main']['temp'], r.json()['weather'][0]['description']
+    except:
+        pass
+    return None, None
+
 def generate_pdf(user, temp, savings, carbon, area):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", 'B', 16)
-    
     pdf.cell(200, 10, txt="FrostByte Sustainability Audit Report", ln=True, align='C')
     pdf.line(10, 20, 200, 20)
     pdf.set_font("Arial", size=12)
     pdf.ln(20)
-    
+
     pdf.cell(200, 10, txt=f"Generated for: {user.upper()}", ln=True, align='L')
     pdf.cell(200, 10, txt=f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align='L')
     pdf.ln(10)
-    
+
     pdf.set_font("Arial", 'B', 14)
     pdf.cell(200, 10, txt="System Parameters", ln=True, align='L')
     pdf.set_font("Arial", size=12)
@@ -276,8 +126,8 @@ def generate_pdf(user, temp, savings, carbon, area):
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt=f"- Estimated Carbon Footprint: {carbon:.2f} kg CO2", ln=True)
     pdf.cell(200, 10, txt=f"- Total Hourly Savings: Rs {savings:.2f}", ln=True)
-    
     pdf.ln(20)
+
     pdf.set_font("Arial", 'B', 14)
     pdf.cell(200, 10, txt="Projected Annual Impact", ln=True, align='L')
     pdf.set_font("Arial", size=12)
@@ -288,16 +138,16 @@ def generate_pdf(user, temp, savings, carbon, area):
     pdf.set_font("Arial", 'I', 10)
     pdf.cell(200, 10, txt="This is an AI-generated estimate for audit purposes.", ln=True, align='C')
     pdf.cell(200, 10, txt="(c) 2026 FrostByte Technologies", ln=True, align='C')
-    
+
     return pdf.output(dest='S').encode('latin-1')
 
+# --- DATABASE FUNCTIONS ---
 def init_db():
     conn = sqlite3.connect('hvac_data.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS login_logs 
-                 (timestamp TEXT, username TEXT, status TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS users 
-                 (username TEXT PRIMARY KEY, password TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS login_logs (timestamp TEXT, username TEXT, status TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS hvac_logs (timestamp TEXT, outside_temp REAL, occupancy INTEGER, current_ac_setting INTEGER, energy_consumption REAL)''')
     conn.commit()
     conn.close()
 
@@ -309,14 +159,16 @@ def create_user(username, password):
         conn.commit()
         return True
     except sqlite3.IntegrityError:
-        return False 
+        return False
     finally:
         conn.close()
 
 def verify_login(username, password):
+    # Hardcoded Admins + DB Users
     valid_admins = {"admin": "Gandhinagar#Win", "dhyey": "Dhyey092026", "harsh": "1234", "owner": "workisworship"}
     if username in valid_admins and valid_admins[username] == password:
         return True
+    
     conn = sqlite3.connect('hvac_data.db')
     c = conn.cursor()
     c.execute("SELECT password FROM users WHERE username=?", (username,))
@@ -344,32 +196,16 @@ def get_access_logs():
     finally:
         conn.close()
 
-# --- 🔥 BUILT-IN AI BRAIN (Replaces .pkl file) ---
-# This ensures it works 100% of the time without file errors
-def calculate_ai_load(temp, occupancy):
-    # Physics-based linear approximation
-    # Coefficients derived from standard thermodynamic charts
-    # Base Load + (Temp Factor) + (Occupancy Factor)
-    base = 10.0
-    temp_factor = (temp - 20) * 1.5 
-    occ_factor = occupancy * 0.1
-    
-    total_load = base + temp_factor + occ_factor
-    if total_load < 5: total_load = 5.0 # Min load
-    return total_load
-
 def save_to_db(temp, occupancy, setpoint, energy, carbon):
     conn = sqlite3.connect('hvac_data.db')
     c = conn.cursor()
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-    c.execute('''CREATE TABLE IF NOT EXISTS hvac_logs 
-                 (timestamp TEXT, outside_temp REAL, occupancy INTEGER, current_ac_setting INTEGER, energy_consumption REAL)''')
     try:
         c.execute("INSERT INTO hvac_logs (timestamp, outside_temp, occupancy, current_ac_setting, energy_consumption) VALUES (?,?,?,?,?)",
                   (timestamp, temp, occupancy, setpoint, energy))
         conn.commit()
     except:
-        pass 
+        pass
     conn.close()
 
 def get_historical_data():
@@ -382,31 +218,67 @@ def get_historical_data():
     finally:
         conn.close()
 
-@st.cache_data(ttl=180)
-def get_live_weather():
-    try:
-        url = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={WEATHER_API_KEY}&units=metric"
-        r = requests.get(url, timeout=2)
-        if r.status_code == 200:
-            return r.json()['main']['temp'], r.json()['weather'][0]['description']
-    except:
-        pass
-    return None, None
+# --- AI CALCULATION LOGIC ---
+def calculate_ai_load(temp, occupancy):
+    base = 10.0
+    temp_factor = (temp - 20) * 1.5
+    occ_factor = occupancy * 0.1
+    total_load = base + temp_factor + occ_factor
+    if total_load < 5: total_load = 5.0
+    return total_load
 
 # Run DB Init
 init_db()
 
-# --- SESSION STATE SETUP ---
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-if 'username' not in st.session_state:
-    st.session_state['username'] = ""
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
+# =========================================================
+# 4. CUSTOM CSS STYLING
+# =========================================================
+st.markdown("""
+    <style>
+    .stApp { background-color: #FFFFFF; }
+    
+    /* CHATBOT BUTTON STYLING */
+    div[data-testid="stPopover"] {
+        position: fixed !important; bottom: 30px !important; right: 30px !important; width: auto !important; z-index: 99999 !important;
+    }
+    div[data-testid="stPopover"] > button {
+        border-radius: 30px !important; background: linear-gradient(135deg, #2980B9 0%, #6DD5FA 100%) !important;
+        color: white !important; border: none !important; padding: 10px 25px !important;
+        font-weight: bold !important; font-size: 16px !important;
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.3) !important;
+        animation: float 3s ease-in-out infinite;
+    }
+    div[data-testid="stPopover"] > button:hover { transform: scale(1.05); color: #fff !important; }
+    @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-5px); } 100% { transform: translateY(0px); } }
+
+    /* GENERAL UI STYLES */
+    [data-testid="stHorizontalBlock"] { align-items: center; }
+    
+    .team-container { display: flex; justify-content: center; margin-bottom: 15px; }
+    .team-img-fixed { width: 150px; height: 150px; object-fit: cover; border-radius: 50%; border: 4px solid #154360; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+    
+    .logo-container { display: flex; align-items: center; justify-content: center; height: 100px; }
+    .logo-img-fixed { max-height: 80px; max-width: 100%; width: auto; object-fit: contain; }
+
+    .header-box { background: linear-gradient(90deg, #004e92 0%, #000428 100%); padding: 30px; color: white; text-align: center; border-radius: 0 0 15px 15px; margin-bottom: 20px; }
+    .marquee-container { background-color: #FEF9E7; color: #B03A2E; padding: 10px; font-weight: bold; border: 1px solid #F1C40F; border-radius: 5px; margin-bottom: 25px; }
+    .message-box { background: linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%); border-left: 6px solid #00BCD4; padding: 25px; border-radius: 12px; color: #006064; }
+    
+    .login-box { background-color: #F8F9F9; padding: 30px; border-radius: 10px; border: 1px solid #D5D8DC; box-shadow: 0px 4px 12px rgba(0,0,0,0.1); }
+    .telemetry-box { background-color: #F4F6F6; color: #154360; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; margin-top: 20px; border: 1px solid #BDC3C7; }
+    .roi-box { background-color: #FFF8E1; padding: 15px; border-radius: 10px; border: 1px solid #F1C40F; margin-top: 15px; }
+    
+    .footer { background-color: #17202A; color: #B2BABB; padding: 40px; text-align: center; margin-top: 50px; font-size: 14px; }
+    </style>
+""", unsafe_allow_html=True)
 
 # =========================================================
-# HEADER & LOGOS
+# 5. HEADER & SESSION STATE
 # =========================================================
+if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
+if 'username' not in st.session_state: st.session_state['username'] = ""
+if 'chat_history' not in st.session_state: st.session_state.chat_history = []
+
 st.markdown("""
     <div class="header-box">
         <h1>❄️ FrostByte Technologies</h1>
@@ -415,65 +287,34 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# 🤖 FLOATING CHATBOT (Using Gemini 2.5 Flash)
+# 6. 🤖 FLOATING CHATBOT (ECOBOT)
 # =========================================================
 with st.popover("👋 Hi! Ask EcoBot"):
     st.markdown("### 🤖 EcoBot Live")
-    st.caption("Powered by Gemini 2.5 Flash")
-
-    # --- 1. SETUP KEY (Split Method) ---
-    key_part_1 = "AIzaSy"
-    # PASTE YOUR KEY PART 2 HERE ↓ (Remove 'AIzaSy' if copying full key)
-    key_part_2 = "BBPYBeNXCVK65SYT5WH8tAh46C-tjvkRQ" 
+    st.caption("Powered by Gemini 2.5")
     
-    final_key = key_part_1 + key_part_2
-    
-    import google.generativeai as genai
-    try:
-        genai.configure(api_key=final_key)
-    except:
-        pass
-
-    # --- 2. CHAT HISTORY ---
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-
     for msg in st.session_state.chat_history:
         st.chat_message(msg["role"]).write(msg["content"])
-    
-    # --- 3. CHAT LOGIC ---
+
     if prompt := st.chat_input("Ask about energy savings..."):
         st.chat_message("user").write(prompt)
         st.session_state.chat_history.append({"role": "user", "content": prompt})
-        
+
         with st.chat_message("assistant"):
             status_box = st.empty()
-            status_box.markdown("⚡ *Connecting to Gemini 2.5...*")
-            
+            status_box.markdown("⚡ *Thinking...*")
             try:
-                # USE THE MODEL NAME WE FOUND IN YOUR LIST!
-                model = genai.GenerativeModel('gemini-2.5-flash')
+                model = genai.GenerativeModel('gemini-1.5-flash')
                 response = model.generate_content(prompt)
                 ai_reply = response.text
-                
-                # Success!
                 status_box.empty()
                 st.write(ai_reply)
                 st.session_state.chat_history.append({"role": "assistant", "content": ai_reply})
-            
             except Exception as e:
-                # If 2.5 is busy, try the 'Lite' version from your list
-                try:
-                    model = genai.GenerativeModel('gemini-2.0-flash-lite')
-                    response = model.generate_content(prompt)
-                    ai_reply = response.text
-                    status_box.empty()
-                    st.write(ai_reply)
-                    st.session_state.chat_history.append({"role": "assistant", "content": ai_reply})
-                except:
-                     status_box.error("⚠️ System Busy. Try again in 1 minute.")
+                status_box.error("⚠️ AI Busy. Try again.")
+
 # =========================================================
-# NAVIGATION
+# 7. NAVIGATION BAR
 # =========================================================
 nav_options = ["🏠 Home & Vision", "🚀 Project Dashboard", "📈 Analytics", "ℹ️ About Team"]
 if st.session_state['logged_in'] and st.session_state['username'] in ['admin', 'dev']:
@@ -490,42 +331,26 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# PAGE: HOME & VISION
+# PAGE 1: HOME & VISION
 # =========================================================
 if selected_tab == "🏠 Home & Vision":
+    st.title("🏠 Welcome to FrostByte")
 
-     st.title("🏠 Welcome to FrostByte")
-    
-    # --- 🌤️ NEW WEATHER HEADER (Temp + Humidity) ---
+    # --- WEATHER HEADER ---
     st.markdown("### 📍 Live Site Conditions: Gandhinagar")
-    
-    # Create 3 small columns for a clean look
     h1, h2, h3 = st.columns(3)
-    
-    with h1:
-        st.metric(label="🌡️ Temperature", value=f"{current_temp}°C")
-    with h2:
-        st.metric(label="💧 Humidity", value=f"{current_hum}%")
-    with h3:
-        st.metric(label="🌤️ Sky", value=f"{weather_desc}")
-        
+    with h1: st.metric(label="🌡️ Temperature", value=f"{current_temp}°C")
+    with h2: st.metric(label="💧 Humidity", value=f"{current_hum}%")
+    with h3: st.metric(label="🌤️ Sky", value=f"{weather_desc}")
     st.divider()
-    
-    # ... (Rest of your Home Page Introduction text) ...
-    
-    st.write("") 
-    
+
     # --- LOGOS ---
     c1, c2, c3, c4, c5 = st.columns(5)
     def render_logo(col, img_path, alt_text):
         b64 = get_img_as_base64(img_path)
         with col:
             if b64:
-                st.markdown(f"""
-                <div class="logo-container">
-                    <img src="data:image/png;base64,{b64}" class="logo-img-fixed">
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f"<div class='logo-container'><img src='data:image/png;base64,{b64}' class='logo-img-fixed'></div>", unsafe_allow_html=True)
             else:
                 st.markdown(f"<div class='logo-container'><b>{alt_text}</b></div>", unsafe_allow_html=True)
 
@@ -538,7 +363,6 @@ if selected_tab == "🏠 Home & Vision":
     st.divider()
 
     col_main, col_news = st.columns([2.5, 1])
-    
     with col_main:
         lottie_url = "https://lottie.host/80e7379f-6e8d-476e-9e45-8c767f4c7d8e/0w5E1Y8Z7P.json" 
         lottie_json = load_lottieurl(lottie_url)
@@ -551,41 +375,30 @@ if selected_tab == "🏠 Home & Vision":
         At the COP26 summit, Prime Minister **Narendra Modi** committed India to achieving **Net Zero Emissions by 2070**. 
         
         **The Core Challenge:**
-        Industrial HVAC (Heating, Ventilation, and Air Conditioning) systems are the largest electricity consumers in commercial buildings, often accounting for **40-60%** of energy bills. Most run on manual, inefficient controls.
+        Industrial HVAC systems account for **40-60%** of energy bills in commercial buildings.
         
         **Our Solution:**
-        **FrostByte** bridges this gap using an AI-driven controller that integrates **Thermodynamics Physics** with **Deep Learning**. By optimizing chiller loads in real-time, we drastically reduce wastage and support India's carbon reduction goals.
+        **FrostByte** bridges this gap using an AI-driven controller that integrates **Thermodynamics Physics** with **Deep Learning**.
         """)
         
         try: st.image("modi.png", caption="Hon'ble PM Shri Narendra Modi", width=300)
         except: pass
 
-        st.write("")
-        st.markdown("## 🤝 From the Desk of the Team")
         st.markdown("""
         <div class="message-box">
             <h3>"Innovating for a Greener Tomorrow"</h3>
-            <p>Welcome to <b>FrostByte</b>. We are a team of Mechanical Engineering students driven by a single mission: to modernize India's industrial infrastructure.</p>
-            <p>While the world discusses AI, many factories still rely on manual technology. We accepted the challenge to change this. By giving HVAC systems the ability to <b>'think'</b> before they cool, we are not just saving money—we are engineering a sustainable future.</p>
-            <br>
-            <p style="text-align:right;"><b>— Team FrostByte</b><br>
-            <i>Mechanical Engineering Dept.</i></p>
+            <p>We are engineering a sustainable future by giving HVAC systems the ability to <b>'think'</b> before they cool.</p>
+            <p style="text-align:right;"><b>— Team FrostByte</b></p>
         </div>
         """, unsafe_allow_html=True)
     
- # --- SMART NEWS SECTION (Updated) ---
     with col_news:
         st.markdown("### ⚡ HVAC News")
-        
-        if model_gemini:
-            # This calls the smart function we added at the top
-            latest_news = get_cached_news()
-            st.info(latest_news)
-        else:
-            st.info("* **COP30 Update:** India focuses on Industrial Cooling.")
+        latest_news = get_cached_news()
+        st.info(latest_news)
 
 # =========================================================
-# PAGE: DASHBOARD (LOGIN & SIGN UP)
+# PAGE 2: DASHBOARD (LOGIN & CONTROL)
 # =========================================================
 elif selected_tab == "🚀 Project Dashboard":
     
@@ -622,6 +435,7 @@ elif selected_tab == "🚀 Project Dashboard":
             st.markdown("</div>", unsafe_allow_html=True)
             
     else:
+        # --- MAIN DASHBOARD INTERFACE ---
         c_head1, c_head2 = st.columns([3, 1])
         with c_head1:
             st.title("🏭 Plant Controller | AI Mode")
@@ -630,21 +444,14 @@ elif selected_tab == "🚀 Project Dashboard":
         col_d1, col_d2 = st.columns([1, 2])
         with col_d1:
             st.subheader("🎛️ Control Panel")
-            
-            # --- PROFESSOR UPGRADE 1: MANUAL ROOM SIZE INPUT ---
-            room_area = st.number_input("📏 Room Area (Sq. Ft)", min_value=100, max_value=10000, value=500, step=10, help="Manually enter the size of the room.")
-
+            room_area = st.number_input("📏 Room Area (Sq. Ft)", min_value=100, max_value=10000, value=500, step=10)
             st.write("---")
             
-            # --- PROFESSOR UPGRADE 2: SENSOR MODE ---
             use_sensor = st.toggle("📡 Activate IoT Sensor Mode")
-            
             if use_sensor:
-                # SIMULATE SENSOR (Random Occupancy)
                 occupancy = random.randint(5, 120)
                 st.info(f"🟢 Sensor Status: ACTIVE")
                 st.metric("Detected Occupancy", f"{occupancy} People")
-                # Visual placeholder for "Computer Vision"
                 st.image("sensor.png", caption="Live Sensor Feed (Simulated)", width=300)
             else:
                 occupancy = st.slider("👥 Manual Occupancy (ppl)", 0, 500, 50)
@@ -656,7 +463,7 @@ elif selected_tab == "🚀 Project Dashboard":
                 real_temp, desc = get_live_weather()
                 if real_temp:
                     outside_temp = real_temp
-                    st.success(f"📍 {CITY}: {real_temp}°C") # SHOWS GANDHINAGAR
+                    st.success(f"📍 {CITY}: {real_temp}°C")
                     st.caption(f"Sky: {desc}")
                 else:
                     st.warning("⚠️ IoT Offline")
@@ -670,7 +477,6 @@ elif selected_tab == "🚀 Project Dashboard":
                 st.session_state['logged_in'] = False
                 st.rerun()
             
-            # ROI CALCULATOR
             with st.expander("💰 ROI Calculator", expanded=False):
                 st.write("Calculate your long-term savings:")
                 elec_rate = st.number_input("Electricity Rate (Rs/Unit)", value=10.0, step=0.5)
@@ -678,35 +484,24 @@ elif selected_tab == "🚀 Project Dashboard":
                 st.caption("Based on current hourly savings")
 
         with col_d2:
-            # --- 🔥 UNBREAKABLE AI CALCULATION ---
-            # No Loading .pkl file check here. It just works.
-            
-            # Assuming base model was trained for a 500 sq ft room.
+            # AI CALCULATION LOGIC
             area_factor = room_area / 500.0
-            
-            # Get Base Load from function
             base_load = calculate_ai_load(outside_temp, occupancy)
-            
-            # Apply Physics Scaling
             predicted_load = base_load * area_factor
-            if outside_temp > 40:
-                predicted_load = predicted_load * 1.2
+            if outside_temp > 40: predicted_load = predicted_load * 1.2
 
             if occupancy < (20 * area_factor):
                 ai_setpoint = 25
                 status = "ECO MODE (Low Occupancy)"
                 color = "green"
-                health_status = "Excellent"
             elif outside_temp > 40:
                 ai_setpoint = 23
                 status = "PRE-COOLING (Heatwave)"
                 color = "orange"
-                health_status = "Stress Load (High)"
             else:
                 ai_setpoint = 22
                 status = "OPTIMAL COMFORT"
                 color = "blue"
-                health_status = "Good"
             
             gap = abs(ai_setpoint - current_setpoint)
             green_score = max(0, 100 - (gap * 15)) 
@@ -719,25 +514,22 @@ elif selected_tab == "🚀 Project Dashboard":
             
             carbon_emission = predicted_load * 0.82
             
-            # Metrics
+            # METRICS DISPLAY
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("🌡️ Temp", f"{outside_temp}°C")
             m2.metric("⚡ Load", f"{predicted_load:.1f} kW")
             m3.metric("👣 Carbon", f"{carbon_emission:.1f} kg")
             m4.metric("💰 Savings", f"₹ {hourly_savings:.1f}")
             
-            # TELEMETRY BOX (PROFESSIONAL GREY)
             st.markdown(f"""
             <div class="telemetry-box">
             <b>📡 LIVE TELEMETRY ({CITY.upper()}):</b><br>
             > RETURN AIR TEMP: {outside_temp - 5:.1f}°C<br>
             > SUPPLY AIR TEMP: {ai_setpoint - 8:.1f}°C<br>
-            > COMPRESSOR SPEED: {min(60, predicted_load/2):.1f} Hz<br>
-            > WATER FLOW RATE: {predicted_load * 1.5:.1f} LPM
+            > COMPRESSOR SPEED: {min(60, predicted_load/2):.1f} Hz
             </div>
             """, unsafe_allow_html=True)
             
-            # Predictive Maintenance
             st.markdown(f"""
             <div style="background-color:#EAFAF1; padding:15px; border-radius:10px; border-left:5px solid {color}; margin-top:10px;">
                 <h4 style="color:{color}; margin:0;">SYSTEM STATUS: {status}</h4>
@@ -779,7 +571,7 @@ elif selected_tab == "🚀 Project Dashboard":
                 st.toast("Data Logged Successfully!", icon="✅")
 
 # =========================================================
-# PAGE: ANALYTICS
+# PAGE 3: ANALYTICS
 # =========================================================
 elif selected_tab == "📈 Analytics":
     st.header("📊 Energy & Carbon Trends")
@@ -793,7 +585,7 @@ elif selected_tab == "📈 Analytics":
         st.error("No Data Logged yet.")
 
 # =========================================================
-# PAGE: ADMIN LOGS
+# PAGE 4: ADMIN LOGS
 # =========================================================
 elif selected_tab == "🔐 Admin Logs":
     if not st.session_state['logged_in']:
@@ -804,28 +596,21 @@ elif selected_tab == "🔐 Admin Logs":
         st.dataframe(logs_df, use_container_width=True)
 
 # =========================================================
-# PAGE: ABOUT TEAM
+# PAGE 5: ABOUT TEAM
 # =========================================================
 elif selected_tab == "ℹ️ About Team":
     st.header("❄️ Meet The Team")
     st.divider()
     col_d, col_h = st.columns(2)
     
-    # --- PERFECT CIRCLE TEAM IMAGES ---
     def render_team_member(col, img_path, name, role, details, link1, link2):
         b64 = get_img_as_base64(img_path)
         with col:
-            # Image Container
             if b64:
-                st.markdown(f"""
-                <div class="team-container">
-                    <img src="data:image/png;base64,{b64}" class="team-img-fixed">
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f"<div class='team-container'><img src='data:image/png;base64,{b64}' class='team-img-fixed'></div>", unsafe_allow_html=True)
             else:
-                 st.image("https://cdn-icons-png.flaticon.com/512/4140/4140048.png", width=150)
+                st.image("https://cdn-icons-png.flaticon.com/512/4140/4140048.png", width=150)
             
-            # Text Content
             st.markdown(f"""
             <div class="profile-box">
                 <h3>{name}</h3>
@@ -839,23 +624,13 @@ elif selected_tab == "ℹ️ About Team":
             with c_lnk1: st.link_button("LinkedIn Profile", link1)
             with c_lnk2: st.link_button("📧 Email Me", link2)
 
-    render_team_member(
-        col_d, "dhyey.png", 
-        "👑 Dhyey J. Nathvani", 
-        "Team Leader & Lead Developer", 
+    render_team_member(col_d, "dhyey.png", "👑 Dhyey J. Nathvani", "Team Leader & Lead Developer", 
         "<b>President | ISHRAE Student Chapter</b><br>Dr. S. & S.S. Ghandhy College, Surat",
-        "https://www.linkedin.com/in/dhyey-nathvani-gecs-mech-a96905289", 
-        "mailto:dhyeynathvani1515@gmail.com"
-    )
+        "https://www.linkedin.com/in/dhyey-nathvani-gecs-mech-a96905289", "mailto:dhyeynathvani1515@gmail.com")
 
-    render_team_member(
-        col_h, "harsh.png", 
-        "🤝 Harsh D. Patel", 
-        "Research & Strategy Partner", 
+    render_team_member(col_h, "harsh.png", "🤝 Harsh D. Patel", "Research & Strategy Partner", 
         "<b>President-Elect | ISHRAE Student Chapter</b><br>Dr. S. & S.S. Ghandhy College, Surat",
-        "https://www.linkedin.com/in/harshpatel0411", 
-        "mailto:harshpatel04112004@gmail.com"
-    )
+        "https://www.linkedin.com/in/harshpatel0411", "mailto:harshpatel04112004@gmail.com")
 
 # --- FOOTER ---
 st.markdown("""
@@ -863,13 +638,4 @@ st.markdown("""
     <p>© 2026 FrostByte Technologies | AI Innovation Challenge 2026</p>
     <p>GKS | CSRBOX | IBM SkillsBuild</p>
 </div>
-
 """, unsafe_allow_html=True)
-
-
-
-
-
-
-
-
