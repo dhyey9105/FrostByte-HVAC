@@ -23,6 +23,28 @@ try:
     genai.configure(api_key=final_key)
 except:
     pass
+
+# --- 🌍 GLOBAL API CALL (Put this near the top) ---
+import requests
+
+# ... (your existing imports and setup) ...
+
+city_name = "Gandhinagar"
+api_key = "YOUR_API_KEY" # Keep your key here
+url = f"https://api.openweathermap.org/data/2.5/weather?q={city_name}&appid={api_key}&units=metric"
+
+try:
+    response = requests.get(url)
+    data = response.json()
+    # Capture variables globally
+    current_temp = data["main"]["temp"]
+    current_hum = data["main"]["humidity"]
+    weather_desc = data["weather"][0]["description"].title()
+except:
+    current_temp = 25 # Fallback
+    current_hum = 50  # Fallback
+    weather_desc = "Sunny"
+
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="FrostByte | Smart HVAC Controller",
@@ -471,6 +493,25 @@ st.markdown("""
 # PAGE: HOME & VISION
 # =========================================================
 if selected_tab == "🏠 Home & Vision":
+
+     st.title("🏠 Welcome to FrostByte")
+    
+    # --- 🌤️ NEW WEATHER HEADER (Temp + Humidity) ---
+    st.markdown("### 📍 Live Site Conditions: Gandhinagar")
+    
+    # Create 3 small columns for a clean look
+    h1, h2, h3 = st.columns(3)
+    
+    with h1:
+        st.metric(label="🌡️ Temperature", value=f"{current_temp}°C")
+    with h2:
+        st.metric(label="💧 Humidity", value=f"{current_hum}%")
+    with h3:
+        st.metric(label="🌤️ Sky", value=f"{weather_desc}")
+        
+    st.divider()
+    
+    # ... (Rest of your Home Page Introduction text) ...
     
     st.write("") 
     
@@ -824,7 +865,6 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
-
 
 
 
