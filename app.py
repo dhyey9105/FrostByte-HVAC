@@ -25,7 +25,8 @@ st.set_page_config(
 # =========================================================
 # 2. GLOBAL API KEYS & SETUP
 # =========================================================
-CITY = "Gandhinagar"
+# UPDATED: City changed to Surat
+CITY = "Surat"
 WEATHER_API_KEY = "4592cc7c9b838fe1c2fc4d8ee3810fab"
 
 # Construct Gemini Key
@@ -33,10 +34,11 @@ key_part_1 = "AIzaSy"
 key_part_2 = "BBPYBeNXCVK65SYT5WH8tAh46C-tjvkRQ"
 GEMINI_API_KEY = key_part_1 + key_part_2
 
-# Configure AI immediately
+# --- CONFIGURE AI (USING GEMINI 2.5) ---
 try:
     genai.configure(api_key=GEMINI_API_KEY)
-    model_gemini = genai.GenerativeModel('gemini-1.5-flash')
+    # Using the exact model from your supported list
+    model_gemini = genai.GenerativeModel('gemini-2.5-flash')
 except Exception as e:
     model_gemini = None
 
@@ -71,7 +73,8 @@ def get_img_as_base64(file_path):
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_cached_news():
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash') # Or 1.5 flash if 2.0 busy
+        # UPDATED: Using Gemini 2.5 Flash
+        model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = "Give me 3 short, realistic headlines about HVAC, Green Buildings, or Carbon Reduction in India for 2026. Bullet points only."
         response = model.generate_content(prompt)
         return response.text
@@ -84,10 +87,13 @@ def get_cached_news():
 
 @st.cache_data(ttl=600)
 def load_lottieurl(url: str):
-    r = requests.get(url)
-    if r.status_code != 200:
+    try:
+        r = requests.get(url)
+        if r.status_code != 200:
+            return None
+        return r.json()
+    except:
         return None
-    return r.json()
 
 @st.cache_data(ttl=180)
 def get_live_weather():
@@ -164,7 +170,6 @@ def create_user(username, password):
         conn.close()
 
 def verify_login(username, password):
-    # Hardcoded Admins + DB Users
     valid_admins = {"admin": "Gandhinagar#Win", "dhyey": "Dhyey092026", "harsh": "1234", "owner": "workisworship"}
     if username in valid_admins and valid_admins[username] == password:
         return True
@@ -268,6 +273,29 @@ st.markdown("""
     .telemetry-box { background-color: #F4F6F6; color: #154360; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; margin-top: 20px; border: 1px solid #BDC3C7; }
     .roi-box { background-color: #FFF8E1; padding: 15px; border-radius: 10px; border: 1px solid #F1C40F; margin-top: 15px; }
     
+    /* WEATHER FLEXBOX FIX - GUARANTEES HORIZONTAL ALIGNMENT */
+    .weather-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        background-color: #F8F9F9;
+        border: 1px solid #D5D8DC;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .weather-item {
+        text-align: center;
+        flex: 1;
+        border-right: 1px solid #E5E8E8;
+    }
+    .weather-item:last-child {
+        border-right: none;
+    }
+    .weather-item h2 { margin: 0; color: #154360; font-size: 24px; }
+    .weather-item p { margin: 0; color: #7F8C8D; font-size: 14px; font-weight: bold; }
+
     .footer { background-color: #17202A; color: #B2BABB; padding: 40px; text-align: center; margin-top: 50px; font-size: 14px; }
     </style>
 """, unsafe_allow_html=True)
@@ -291,7 +319,7 @@ st.markdown("""
 # =========================================================
 with st.popover("👋 Hi! Ask EcoBot"):
     st.markdown("### 🤖 EcoBot Live")
-    st.caption("Powered by Gemini 2.5")
+    st.caption("Powered by Gemini 2.5 Flash")
     
     for msg in st.session_state.chat_history:
         st.chat_message(msg["role"]).write(msg["content"])
@@ -304,14 +332,15 @@ with st.popover("👋 Hi! Ask EcoBot"):
             status_box = st.empty()
             status_box.markdown("⚡ *Thinking...*")
             try:
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                # UPDATED: Using Gemini 2.5 Flash
+                model = genai.GenerativeModel('gemini-2.5-flash')
                 response = model.generate_content(prompt)
                 ai_reply = response.text
                 status_box.empty()
                 st.write(ai_reply)
                 st.session_state.chat_history.append({"role": "assistant", "content": ai_reply})
             except Exception as e:
-                status_box.error("⚠️ AI Busy. Try again.")
+                status_box.error(f"⚠️ Error: {e}")
 
 # =========================================================
 # 7. NAVIGATION BAR
@@ -336,12 +365,27 @@ st.markdown("""
 if selected_tab == "🏠 Home & Vision":
     st.title("🏠 Welcome to FrostByte")
 
-    # --- WEATHER HEADER ---
-    st.markdown("### 📍 Live Site Conditions: Gandhinagar")
-    h1, h2, h3 = st.columns(3)
-    with h1: st.metric(label="🌡️ Temperature", value=f"{current_temp}°C")
-    with h2: st.metric(label="💧 Humidity", value=f"{current_hum}%")
-    with h3: st.metric(label="🌤️ Sky", value=f"{weather_desc}")
+    # --- ALIGNMENT FIX: WEATHER HEADER USING FLEXBOX ---
+    st.markdown(f"### 📍 Live Site Conditions: {CITY}")
+    
+    # This HTML uses the CSS classes we defined above to force horizontal alignment
+    st.markdown(f"""
+    <div class="weather-container">
+        <div class="weather-item">
+            <p>🌡️ Temperature</p>
+            <h2>{current_temp}°C</h2>
+        </div>
+        <div class="weather-item">
+            <p>💧 Humidity</p>
+            <h2>{current_hum}%</h2>
+        </div>
+        <div class="weather-item">
+            <p>🌤️ Sky</p>
+            <h2>{weather_desc}</h2>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.divider()
 
     # --- LOGOS ---
@@ -384,11 +428,15 @@ if selected_tab == "🏠 Home & Vision":
         try: st.image("modi.png", caption="Hon'ble PM Shri Narendra Modi", width=300)
         except: pass
 
+        # --- RESTORED: FULL TEAM MESSAGE ---
         st.markdown("""
         <div class="message-box">
             <h3>"Innovating for a Greener Tomorrow"</h3>
-            <p>We are engineering a sustainable future by giving HVAC systems the ability to <b>'think'</b> before they cool.</p>
-            <p style="text-align:right;"><b>— Team FrostByte</b></p>
+            <p>Welcome to <b>FrostByte</b>. We are a team of Mechanical Engineering students driven by a single mission: to modernize India's industrial infrastructure.</p>
+            <p>While the world discusses AI, many factories still rely on manual technology. We accepted the challenge to change this. By giving HVAC systems the ability to <b>'think'</b> before they cool, we are not just saving money—we are engineering a sustainable future.</p>
+            <br>
+            <p style="text-align:right;"><b>— Team FrostByte</b><br>
+            <i>Mechanical Engineering Dept.</i></p>
         </div>
         """, unsafe_allow_html=True)
     
