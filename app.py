@@ -31,7 +31,7 @@ WEATHER_API_KEY = "4592cc7c9b838fe1c2fc4d8ee3810fab"
 
 # Construct Gemini Key
 key_part_1 = "AIzaSy"
-key_part_2 = "BBPYBeNXCVK65SYT5WH8tAh46C-tjvkRQ"
+key_part_2 = "BmD8i0500PyhNNjRSEh_wEG0rrCtIbbBU"
 GEMINI_API_KEY = key_part_1 + key_part_2
 
 # --- CONFIGURE AI (USING GEMINI 2.5) ---
@@ -686,4 +686,5 @@ st.markdown("""
     <p>© 2026 FrostByte Technologies | AI Innovation Challenge 2026</p>
     <p>GKS | CSRBOX | IBM SkillsBuild</p>
 </div>
+
 """, unsafe_allow_html=True)
