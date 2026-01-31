@@ -30,7 +30,7 @@ import requests
 # ... (your existing imports and setup) ...
 
 city_name = "Gandhinagar"
-api_key = "YOUR_API_KEY" # Keep your key here
+api_key = "4592cc7c9b838fe1c2fc4d8ee3810fab" # Keep your key here
 url = f"https://api.openweathermap.org/data/2.5/weather?q={city_name}&appid={api_key}&units=metric"
 
 try:
@@ -865,6 +865,7 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
 
 
 
