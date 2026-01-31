@@ -25,4 +25,5 @@ FrostByte is an intelligent HVAC controller designed for Indian MSMEs. It uses A
 - Harsh D. Patel (Research Strategy)
 
 ## 📍 Note for Evaluators
-The system is currently configured for the "Gandhinagar" region for the competition demo.
+The system is currently configured for the "Surat" region for the competition demo.
+
